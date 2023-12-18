@@ -27,10 +27,9 @@ public class ArchivingWorkflowListenerConfiguration {
     @Bean
     public WorkflowStatusListener getWorkflowStatusListener(
             ExecutionDAOFacade executionDAOFacade, ArchivingWorkflowListenerProperties properties) {
-        if(properties.getWorkflowArchivalType() == ArchivingWorkflowListenerProperties.ArchivalType.S3){
+        if (properties.getWorkflowArchivalType() == ArchivingWorkflowListenerProperties.ArchivalType.S3) {
             return new ArchivingWorkflowToS3(executionDAOFacade, properties);
-        }
-        else {
+        } else {
             if (properties.getTtlDuration().getSeconds() > 0) {
                 return new ArchivingWithTTLWorkflowStatusListener(executionDAOFacade, properties);
             } else {
