@@ -4,7 +4,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.conductor.core.dal.ExecutionDAOFacade;
-import com.netflix.conductor.core.exception.TerminateWorkflowException;
 import com.netflix.conductor.core.listener.WorkflowStatusListener;
 import com.netflix.conductor.metrics.Monitors;
 import com.netflix.conductor.model.WorkflowModel;
@@ -54,15 +53,12 @@ public class ArchivingWorkflowToS3 implements WorkflowStatusListener {
             try {
                 // Upload workflow as a json file to s3
                 s3Client.putObject(bucketName, fullFilePath, objectMapper.writeValueAsString(workflow));
-                LOGGER.info(
+                LOGGER.debug(
                         "Successfully archived workflow {} to S3 bucket {} as file {}",
                         workflow.getWorkflowId(),
                         bucketName,
                         fullFilePath);
-            } catch (final TerminateWorkflowException e) {
-                LOGGER.error("Exception occurred when archiving workflow to S3:" , e);
-                throw e;
-            } catch (final Exception e) {
+            }  catch (final Exception e) {
                 LOGGER.error("Exception occurred when archiving workflow to S3:", e);
                 throw new RuntimeException(e);
             }
