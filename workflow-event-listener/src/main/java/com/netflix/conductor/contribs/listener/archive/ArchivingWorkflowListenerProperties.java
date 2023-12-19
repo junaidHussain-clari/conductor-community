@@ -21,9 +21,19 @@ import org.springframework.core.env.Environment;
 
 @ConfigurationProperties("conductor.workflow-status-listener.archival")
 public class ArchivingWorkflowListenerProperties {
-
+    public enum ArchivalType {
+        DEFAULT,
+        S3
+    }
     private final Environment environment;
 
+    private ArchivalType workflowArchivalType = ArchivalType.DEFAULT;
+
+    private String workflowS3ArchivalDefaultBucketName = "";
+
+    private String workflowS3ArchivalBucketRegion = "us-east-1";
+
+    private Boolean workflowArchiveUnsuccessfulOnly = false;
     @Autowired
     public ArchivingWorkflowListenerProperties(Environment environment) {
         this.environment = environment;
@@ -53,6 +63,38 @@ public class ArchivingWorkflowListenerProperties {
 
     public void setDelayQueueWorkerThreadCount(int delayQueueWorkerThreadCount) {
         this.delayQueueWorkerThreadCount = delayQueueWorkerThreadCount;
+    }
+
+    public ArchivalType getWorkflowArchivalType() {
+        return workflowArchivalType;
+    }
+
+    public void setWorkflowArchivalType(ArchivalType workflowArchivalType) {
+        this.workflowArchivalType = workflowArchivalType;
+    }
+
+    public String getWorkflowS3ArchivalDefaultBucketName() {
+        return workflowS3ArchivalDefaultBucketName;
+    }
+
+    public void setWorkflowS3ArchivalDefaultBucketName(String workflowS3ArchivalDefaultBucketName) {
+        this.workflowS3ArchivalDefaultBucketName = workflowS3ArchivalDefaultBucketName;
+    }
+
+    public String getWorkflowS3ArchivalBucketRegion() {
+        return workflowS3ArchivalBucketRegion;
+    }
+
+    public void setWorkflowS3ArchivalBucketRegion(String workflowS3ArchivalBucketRegion) {
+        this.workflowS3ArchivalBucketRegion = workflowS3ArchivalBucketRegion;
+    }
+
+    public Boolean getWorkflowArchiveUnsuccessfulOnly() {
+        return workflowArchiveUnsuccessfulOnly;
+    }
+
+    public void setWorkflowArchiveUnsuccessfulOnly(Boolean workflowArchiveUnsuccessfulOnly) {
+        this.workflowArchiveUnsuccessfulOnly = workflowArchiveUnsuccessfulOnly;
     }
 
     /** The time to delay the archival of workflow */
