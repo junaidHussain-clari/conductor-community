@@ -54,9 +54,10 @@ public class ArchivingWorkflowToS3 implements WorkflowStatusListener {
                 // Upload workflow as a json file to s3
                 s3Client.putObject(bucketName, fullFilePath, objectMapper.writeValueAsString(workflow));
                 LOGGER.debug(
-                        "Successfully archived workflow {}, with workflowID: {} to S3 bucket {} as file {}",
+                        "Archived workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {} to S3 bucket {} as file {}",
                         workflow.getWorkflowName(),
                         workflow.getWorkflowId(),
+                        workflow.getStatus(),
                         bucketName,
                         fullFilePath);
             }  catch (final Exception e) {
