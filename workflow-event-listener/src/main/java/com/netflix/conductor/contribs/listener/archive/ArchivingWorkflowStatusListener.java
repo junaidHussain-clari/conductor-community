@@ -37,14 +37,14 @@ public class ArchivingWorkflowStatusListener implements WorkflowStatusListener {
 
     @Override
     public void onWorkflowCompleted(WorkflowModel workflow) {
-        LOGGER.info("Archiving workflow {} on completion ", workflow.getWorkflowId());
+        LOGGER.info("Archiving workflow {} on completion, with workflowID: {} ", workflow.getWorkflowName(), workflow.getWorkflowId());
         this.executionDAOFacade.removeWorkflow(workflow.getWorkflowId(), true);
         Monitors.recordWorkflowArchived(workflow.getWorkflowName(), workflow.getStatus());
     }
 
     @Override
     public void onWorkflowTerminated(WorkflowModel workflow) {
-        LOGGER.info("Archiving workflow {} on termination", workflow.getWorkflowId());
+        LOGGER.info("Archiving workflow {} on termination, with workflowID: {} ", workflow.getWorkflowName(), workflow.getWorkflowId());
         this.executionDAOFacade.removeWorkflow(workflow.getWorkflowId(), true);
         Monitors.recordWorkflowArchived(workflow.getWorkflowName(), workflow.getStatus());
     }

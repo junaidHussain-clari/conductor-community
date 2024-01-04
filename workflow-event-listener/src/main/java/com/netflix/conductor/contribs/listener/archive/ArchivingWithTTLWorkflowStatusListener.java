@@ -78,7 +78,7 @@ public class ArchivingWithTTLWorkflowStatusListener implements WorkflowStatusLis
 
     @Override
     public void onWorkflowCompleted(WorkflowModel workflow) {
-        LOGGER.info("Archiving workflow {} on completion ", workflow.getWorkflowId());
+        LOGGER.info("Archiving workflow {} on completion, with workflowID: {} ", workflow.getWorkflowName(), workflow.getWorkflowId());
         if (delayArchiveSeconds > 0) {
             scheduledThreadPoolExecutor.schedule(
                     new DelayArchiveWorkflow(workflow, executionDAOFacade),
@@ -92,7 +92,7 @@ public class ArchivingWithTTLWorkflowStatusListener implements WorkflowStatusLis
 
     @Override
     public void onWorkflowTerminated(WorkflowModel workflow) {
-        LOGGER.info("Archiving workflow {} on termination", workflow.getWorkflowId());
+        LOGGER.info("Archiving workflow {} on termination, with workflowID: {} ", workflow.getWorkflowName(), workflow.getWorkflowId());
         if (delayArchiveSeconds > 0) {
             scheduledThreadPoolExecutor.schedule(
                     new DelayArchiveWorkflow(workflow, executionDAOFacade),
@@ -122,12 +122,12 @@ public class ArchivingWithTTLWorkflowStatusListener implements WorkflowStatusLis
         public void run() {
             try {
                 this.executionDAOFacade.removeWorkflow(workflowId, true);
-                LOGGER.info("Archived workflow {}", workflowId);
+                LOGGER.info("Archived workflow {}, with workflowID: {} ", workflowName, workflowId);
                 Monitors.recordWorkflowArchived(workflowName, status);
                 Monitors.recordArchivalDelayQueueSize(
                         scheduledThreadPoolExecutor.getQueue().size());
             } catch (Exception e) {
-                LOGGER.error("Unable to archive workflow: {}", workflowId, e);
+                LOGGER.error("Unable to archive workflow: {}, with workflowID: {}", workflowId, e);
             }
         }
     }
