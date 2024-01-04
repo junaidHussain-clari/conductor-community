@@ -61,9 +61,10 @@ public class ArchivingWorkflowToS3 implements WorkflowStatusListener {
                         bucketName,
                         fullFilePath);
             }  catch (final Exception e) {
-                LOGGER.error("Exception occurred when archiving workflow {}, with workflowID: {} to S3:",
+                LOGGER.error("Exception occurred when archiving workflow to S3. Workflow Name : {} Workflow Id : {} Workflow Status : {} :",
                         workflow.getWorkflowName(),
                         workflow.getWorkflowId(),
+                        workflow.getStatus(),
                         e);
                 throw new RuntimeException(e);
             }
