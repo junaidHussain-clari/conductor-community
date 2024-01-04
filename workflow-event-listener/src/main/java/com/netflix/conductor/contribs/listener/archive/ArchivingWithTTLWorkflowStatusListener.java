@@ -78,7 +78,7 @@ public class ArchivingWithTTLWorkflowStatusListener implements WorkflowStatusLis
 
     @Override
     public void onWorkflowCompleted(WorkflowModel workflow) {
-        LOGGER.info("Archiving workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {} ",
+        LOGGER.debug("Archiving workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {} ",
                 workflow.getWorkflowName(),
                 workflow.getWorkflowId(),
                 workflow.getStatus());
@@ -95,7 +95,7 @@ public class ArchivingWithTTLWorkflowStatusListener implements WorkflowStatusLis
 
     @Override
     public void onWorkflowTerminated(WorkflowModel workflow) {
-        LOGGER.info("Archiving workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {} ",
+        LOGGER.debug("Archiving workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {} ",
                 workflow.getWorkflowName(),
                 workflow.getWorkflowId(),
                 workflow.getStatus());
@@ -128,7 +128,7 @@ public class ArchivingWithTTLWorkflowStatusListener implements WorkflowStatusLis
         public void run() {
             try {
                 this.executionDAOFacade.removeWorkflow(workflowId, true);
-                LOGGER.info("Archived workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {}",
+                LOGGER.debug("Archived workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {}",
                         workflowName, workflowId, status);
                 Monitors.recordWorkflowArchived(workflowName, status);
                 Monitors.recordArchivalDelayQueueSize(
