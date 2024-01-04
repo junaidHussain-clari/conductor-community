@@ -78,7 +78,10 @@ public class ArchivingWithTTLWorkflowStatusListener implements WorkflowStatusLis
 
     @Override
     public void onWorkflowCompleted(WorkflowModel workflow) {
-        LOGGER.info("Archiving workflow {} on completion ", workflow.getWorkflowId());
+        LOGGER.debug("Archiving workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {} ",
+                workflow.getWorkflowName(),
+                workflow.getWorkflowId(),
+                workflow.getStatus());
         if (delayArchiveSeconds > 0) {
             scheduledThreadPoolExecutor.schedule(
                     new DelayArchiveWorkflow(workflow, executionDAOFacade),
@@ -92,7 +95,10 @@ public class ArchivingWithTTLWorkflowStatusListener implements WorkflowStatusLis
 
     @Override
     public void onWorkflowTerminated(WorkflowModel workflow) {
-        LOGGER.info("Archiving workflow {} on termination", workflow.getWorkflowId());
+        LOGGER.debug("Archiving workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {} ",
+                workflow.getWorkflowName(),
+                workflow.getWorkflowId(),
+                workflow.getStatus());
         if (delayArchiveSeconds > 0) {
             scheduledThreadPoolExecutor.schedule(
                     new DelayArchiveWorkflow(workflow, executionDAOFacade),
@@ -122,12 +128,14 @@ public class ArchivingWithTTLWorkflowStatusListener implements WorkflowStatusLis
         public void run() {
             try {
                 this.executionDAOFacade.removeWorkflow(workflowId, true);
-                LOGGER.info("Archived workflow {}", workflowId);
+                LOGGER.debug("Archived workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {}",
+                        workflowName, workflowId, status);
                 Monitors.recordWorkflowArchived(workflowName, status);
                 Monitors.recordArchivalDelayQueueSize(
                         scheduledThreadPoolExecutor.getQueue().size());
             } catch (Exception e) {
-                LOGGER.error("Unable to archive workflow: {}", workflowId, e);
+                LOGGER.error("Unable to archive workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {}",
+                        workflowName, workflowId, status, e);
             }
         }
     }
