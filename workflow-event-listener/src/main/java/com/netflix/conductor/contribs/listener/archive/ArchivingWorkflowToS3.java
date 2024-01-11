@@ -10,6 +10,10 @@ import com.netflix.conductor.model.WorkflowModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PreDestroy;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 public class ArchivingWorkflowToS3 implements WorkflowStatusListener {
 
     private static final Logger LOGGER =
@@ -17,12 +21,14 @@ public class ArchivingWorkflowToS3 implements WorkflowStatusListener {
     private final ExecutionDAOFacade executionDAOFacade;
 
     private final ArchivingWorkflowListenerProperties properties;
+    private final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
     private final AmazonS3 s3Client;
 
     private final String bucketName;
     private final String bucketRegion;
     private final ObjectMapper objectMapper;
+    private final int delayArchiveSeconds;
 
     public ArchivingWorkflowToS3(ExecutionDAOFacade executionDAOFacade, ArchivingWorkflowListenerProperties properties) {
         this.executionDAOFacade = executionDAOFacade;
@@ -30,7 +36,42 @@ public class ArchivingWorkflowToS3 implements WorkflowStatusListener {
         bucketName = properties.getWorkflowS3ArchivalDefaultBucketName();
         bucketRegion = properties.getWorkflowS3ArchivalBucketRegion();
         s3Client = AmazonS3ClientBuilder.standard().withRegion(bucketRegion).build();
+        this.delayArchiveSeconds = properties.getWorkflowArchivalDelay();
         objectMapper = new ObjectMapper();
+        this.scheduledThreadPoolExecutor =
+                new ScheduledThreadPoolExecutor(
+                        properties.getDelayQueueWorkerThreadCount(),
+                        (runnable, executor) -> {
+                            LOGGER.warn(
+                                    "Request {} to delay S3 archiving index dropped in executor {}",
+                                    runnable,
+                                    executor);
+                            Monitors.recordDiscardedArchivalCount();
+                        });
+        this.scheduledThreadPoolExecutor.setRemoveOnCancelPolicy(true);
+        LOGGER.warn(
+                "Workflow removal archiving in S3 with TTL is no longer supported, "
+                        + "when using this class, workflows will be removed immediately");
+    }
+
+    @PreDestroy
+    public void shutdownExecutorService() {
+        try {
+            LOGGER.info("Gracefully shutdown executor service in S3 Archival Listener");
+            scheduledThreadPoolExecutor.shutdown();
+            if (scheduledThreadPoolExecutor.awaitTermination(
+                    delayArchiveSeconds, TimeUnit.SECONDS)) {
+                LOGGER.debug("tasks completed, shutting down");
+            } else {
+                LOGGER.warn("Forcing shutdown after waiting for {} seconds", delayArchiveSeconds);
+                scheduledThreadPoolExecutor.shutdownNow();
+            }
+        } catch (InterruptedException ie) {
+            LOGGER.warn(
+                    "Shutdown interrupted, invoking shutdownNow on scheduledThreadPoolExecutor for delay queue S3 Archival Listener");
+            scheduledThreadPoolExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override
@@ -69,7 +110,48 @@ public class ArchivingWorkflowToS3 implements WorkflowStatusListener {
                 throw new RuntimeException(e);
             }
         }
-        this.executionDAOFacade.removeWorkflow(workflow.getWorkflowId(), true);
-        Monitors.recordWorkflowArchived(workflow.getWorkflowName(), workflow.getStatus());
+        if (delayArchiveSeconds > 0) {
+            scheduledThreadPoolExecutor.schedule(
+                    new ArchivingWorkflowToS3.DelayS3ArchiveWorkflow(workflow, executionDAOFacade),
+                    delayArchiveSeconds,
+                    TimeUnit.SECONDS);
+        } else {
+            LOGGER.debug("Archived workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {}",
+                    workflow.getWorkflowName(),
+                    workflow.getWorkflowId(),
+                    workflow.getStatus());
+            this.executionDAOFacade.removeWorkflow(workflow.getWorkflowId(), true);
+            Monitors.recordWorkflowArchived(workflow.getWorkflowName(), workflow.getStatus());
+        }
+    }
+
+    private class DelayS3ArchiveWorkflow implements Runnable {
+
+        private final String workflowId;
+        private final String workflowName;
+        private final WorkflowModel.Status status;
+        private final ExecutionDAOFacade executionDAOFacade;
+
+        DelayS3ArchiveWorkflow(WorkflowModel workflow, ExecutionDAOFacade executionDAOFacade) {
+            this.workflowId = workflow.getWorkflowId();
+            this.workflowName = workflow.getWorkflowName();
+            this.status = workflow.getStatus();
+            this.executionDAOFacade = executionDAOFacade;
+        }
+
+        @Override
+        public void run() {
+            try {
+                this.executionDAOFacade.removeWorkflow(workflowId, true);
+                LOGGER.debug("Archived workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {}",
+                        workflowName, workflowId, status);
+                Monitors.recordWorkflowArchived(workflowName, status);
+                Monitors.recordArchivalDelayQueueSize(
+                        scheduledThreadPoolExecutor.getQueue().size());
+            } catch (Exception e) {
+                LOGGER.error("Unable to archive workflow. Workflow Name : {} Workflow Id : {} Workflow Status : {}",
+                        workflowName, workflowId, status, e);
+            }
+        }
     }
 }
