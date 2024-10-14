@@ -37,7 +37,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(PostgresProperties.class)
-@ConditionalOnProperty(name = "conductor.db.type", havingValue = "postgres")
+@ConditionalOnProperty(name = "conductor.relational-db.type", havingValue = "postgres")
 // Import the DataSourceAutoConfiguration when postgres database is selected.
 // By default, the datasource configuration is excluded in the main module.
 @Import(DataSourceAutoConfiguration.class)
@@ -65,6 +65,8 @@ public class PostgresConfiguration {
 
     @Bean
     @DependsOn({"flywayForPrimaryDb"})
+    @ConditionalOnProperty(name = "conductor.metadata.type", havingValue = "postgres")
+    @Primary
     public PostgresMetadataDAO postgresMetadataDAO(
             @Qualifier("postgresRetryTemplate") RetryTemplate retryTemplate,
             ObjectMapper objectMapper,
@@ -74,6 +76,7 @@ public class PostgresConfiguration {
 
     @Bean
     @DependsOn({"flywayForPrimaryDb"})
+    @ConditionalOnProperty(name = "conductor.execution.type", havingValue = "postgres")
     public PostgresExecutionDAO postgresExecutionDAO(
             @Qualifier("postgresRetryTemplate") RetryTemplate retryTemplate,
             ObjectMapper objectMapper) {
